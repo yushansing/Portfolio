@@ -1,0 +1,323 @@
+﻿@section Styles{
+    <style>
+        .upperLayer {
+            margin-top: 50px;
+        }
+
+        td {
+            height: 50px;
+            border: 1px solid silver;
+            text-align: center;
+        }
+
+        .formatError {
+            color: #dc3545;
+            font-size: .875em;
+        }
+
+        .modal-header {
+            background-color: #52c5fd;
+        }
+
+        .modal-title {
+            color: white;
+        }
+    </style>
+}
+
+
+<div id="app">
+    <div>
+        @* 新增管理人 *@
+        <div class="col-2" style="margin-bottom:25px;margin-top:25px;">
+            <button class="btn btn-success" data-toggle="modal" data-target="#newAdmin">新增管理人</button>
+        </div>
+    </div>
+    @* 管理員資訊 *@
+    <div class="table-responsive text-center">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th style="width:75px;">編號</th>
+                    <th>管理員名稱</th>
+                    <th>帳號</th>
+                    <th>管理權限</th>
+                    <th style="width:100px;">建立日期</th>
+                    <th>上線時間</th>
+                    <th>編輯</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="pa in showAdmin">
+                    <td v-cloak>{{pa.id}}</td>
+                    <td v-cloak>{{pa.name}}</td>
+                    <td v-cloak>{{pa.account}}</td>
+                    <td v-cloak>{{pa.describe}}</td>
+                    <td v-cloak>{{pa.createDate | formatDate}}</td>
+                    <td v-cloak>{{pa.loginDate | formatDate}}</td>
+                    <td>
+                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#UpdateAdmin" @@click="Edit(pa)">編輯</button>
+                        <button type="button" class="btn btn-danger" @@click="deleteAdmin(pa.id)">刪除</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        @* 分頁 *@
+        <nav class="blog-pagination justify-content-center d-flex">
+            <ul class="pagination">
+                <paginate :page-count="total"
+                          :click-handler="changePage"
+                          :page-class="'page-item'"
+                          :page-link-class="'page-link'"
+                          :prev-class="'page-link'"
+                          :prev-link-class="'lnr lnr-chevron-left'"
+                          :next-class="'page-link'"
+                          :next-link-class="'lnr lnr-chevron-right'"
+                          :container-class="'pagination'">
+                </paginate>
+            </ul>
+        </nav>
+    </div>
+    @*新增管理員記錄Bootstrap Modal畫面*@
+    <div class="modal fade" id="newAdmin" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header text-center">
+                    <h5 class="modal-title w-100" id="modalTitleId">新增管理員</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">名稱：</label>
+                        <input v-model.trim="newAdmin.name" type="text" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">帳號：</label>
+                        <input v-model.trim="newAdmin.account" type="text" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">密碼：</label>
+                        <input v-model.trim="newAdmin.password" type="password" class="form-control" required />
+                        <div class="formatError" v-if="newAdmin.password && !isValid(newAdmin.password,validType.password)">您輸入的格式不正確</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">管理權限：</label>
+                        <select class="form-control" v-model="newAdmin.describe">
+                            <option value="manage">修改</option>
+                            <option value="view">觀看</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" @@click="createAdmin">新增</button>
+                    <button type="button" data-dismiss="modal" class="btn btn-secondary" @@click="formClear">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @*修改管理員記錄Bootstrap Modal畫面*@
+    <div class="modal fade" id="UpdateAdmin" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header text-center">
+                    <h5 class="modal-title w-100" id="modalTitleId">修改管理人資料</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">姓名：</label>
+                        <input v-model.trim="UpdateAdmin.name" type="text" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">帳號：</label>
+                        <input v-model.trim="UpdateAdmin.account" type="email" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">密碼：</label>
+                        <input v-model.trim="UpdateAdmin.password" type="password" class="form-control" required />
+                        <div class="formatError" v-if="UpdateAdmin.password && !isValid(UpdateAdmin.password,validType.password)">您輸入的格式不正確</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">管理權限：</label>
+                        <select class="form-control" v-model="UpdateAdmin.describe">
+                            <option value="manage">修改</option>
+                            <option value="view">觀看</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" @@click="updateAdmin(UpdateAdmin)">修改</button>
+                    <button type="button" data-dismiss="modal" class="btn btn-secondary" @@click="formClear">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script src="~/js/validation.min.js"></script>
+    <script src="https://unpkg.com/vuejs-paginate@0.9.0"></script>
+    <script>
+        Vue.component('paginate', VuejsPaginate)
+        var app = new Vue({
+            el: '#app',
+            data: {
+                putAdmin: [],
+                UpdateAdmin: [],
+                newAdmin: {
+                    name: '',
+                    account: '',
+                    password: '',
+                    describe: '',
+                    loginDate: '',
+                },
+                searchQuery: '',
+                validType: validType,
+                currentPage: 1,
+                itemPage: 7
+            },
+            mounted: function () {
+                let _this = this;
+                //管理員資訊
+                fetch(`/api/Super/GetAdmin`, { method: "GET" })
+                    .then(response => {
+                        if (response.ok) return response.json();
+                    }).then(data => {
+                        _this.putAdmin = data;
+                    }).catch(err => {
+                        alert("資料讀取失敗");
+                    });
+            },
+            methods: {
+                isValid: function (str, type) {
+                    return window.validation(str, type);
+                },
+                //新增管理員
+                createAdmin: function () {
+                    let _this = this;
+                    let form = {
+                        id: 0,
+                        name: _this.newAdmin.name,
+                        account: _this.newAdmin.account,
+                        password: _this.newAdmin.password,
+                        describe: _this.newAdmin.describe,
+                        loginDate: new Date(),
+                        CreateDate: new Date()
+                    };
+                    if (_this.newAdmin.name && _this.newAdmin.account && _this.newAdmin.password && _this.newAdmin.describe) {
+                        if (!_this.isValid(_this.newAdmin.password, validType.password)) return alert("密碼格式輸入不正確");
+                        fetch(`/api/Super/CreateAdmin`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(form)
+                        }).then(response => response.json())
+                            .then(data => {
+                                if (data) {
+                                    alert("管理員新增成功");
+                                    window.location.href = "/Admin/Manage/Index";
+                                } else {
+                                    alert("管理員新增失敗");
+                                }
+                            }).catch(err => {
+                                alert("管理員新增失敗");
+                            });
+                    } else {
+                        alert("有欄位內容未輸入")
+                    }
+                },
+                //刪除管理員
+                deleteAdmin: function (id) {
+                    let _this = this;
+                    let result = confirm(`確定要刪除會員編號${id}?`);
+                    if (result != true) return false;
+                    fetch(`/api/Super/AdminDelete/${id}`, { method: "DELETE" })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data) {
+                                alert("刪除成功");
+                                window.location.reload();
+                            } else {
+                                alert("修改失敗,請檢查必填有無填寫或者您並無權限做修改");
+                            }
+                        }).catch(err => {
+                            alert("修改失敗,請檢查必填有無填寫或者您並無權限做修改");
+                        });
+                },
+                updateAdminApi: async function (id, data) {
+                    return await fetch(`/api/Super/AdminPut/${id}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(data)
+                    }).then(res => res.json()).catch(err => false);
+                },
+                //修改管理員
+                updateAdmin: function (model) {
+                    let _this = this;
+                    if (!_this.isValid(_this.UpdateAdmin.password, validType.password)) return alert("密碼格式輸入不正確");
+                    if (_this.UpdateAdmin.name && _this.UpdateAdmin.account && _this.UpdateAdmin.describe && _this.UpdateAdmin.password) {
+                        if (!confirm(`確定要更新管理員名稱為${this.UpdateAdmin.name}的管理員資訊？`)) return;
+                        this.updateAdminApi(model.id, {
+                            name: model.name,
+                            account: model.account,
+                            password: model.password,
+                            describe: model.describe,
+                        }).then(x => {
+                            if (!x) return alert("修改失敗,請檢查必填有無填寫或者您並無權限做修改");
+                            alert("修改成功");
+                            $('#UpdateAdmin').modal('hide');
+                            window.location.href = "/Admin/Manage/Index";
+                        })
+                    } else {
+                        alert("有內容未輸入")
+                    }
+                },
+                formClear: function () {
+                    this.newAdmin = {
+                        name: '',
+                        account: '',
+                        password: '',
+                        Role: '',
+                        birthday: '',
+                        phone: '',
+                        password: ''
+                    }
+                },
+                //編輯modal
+                Edit: function (model) {
+                    let _this = this;
+                    _this.UpdateAdmin = Object.assign({}, model);
+                },
+                //分頁
+                changePage: function (num) {
+                    let _this = this;
+                    _this.currentPage = num;
+                },
+            },
+            computed: {
+                //分頁
+                showAdmin: function () {
+                    let _this = this;
+                    var start = (_this.currentPage - 1) * _this.itemPage;
+                    var end = start + _this.itemPage;
+                    return this.putAdmin.slice(start, end);
+                },
+                total: function () {
+                    let _this = this;
+                    return Math.ceil(_this.putAdmin.length / _this.itemPage);
+                }
+            },
+            filters: {
+                //日期格式
+                formatDate: function (str) {
+                    if (!str) return "";
+                    var d = new Date(str);
+                    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`
+                }
+            },
+        });
+    </script>
+}

@@ -1,0 +1,462 @@
+﻿@{
+    ViewData["Title"] = "會員管理";
+}
+
+@section Styles{
+    <link href="~/css/manageuser.css" rel="stylesheet" />
+}
+
+<div id="app">
+    <div>
+        <div class="row upperLayer">
+            @* 搜尋 *@
+            <div class="col-4">
+                <input class="inp-search" type="text" placeholder="Search..." v-model="searchQuery" @@keyup="search">
+            </div>
+            @* 排序 *@
+            <div class="col-6">
+                <div class="sort d-flex align-items-center">
+                    <div>
+                        <h4 class="title_color sort-title">排序：</h4>
+                    </div>
+                    <h4>
+                        <span>
+                            <a href="#" v-on:click="sortAscendingAge"><i class="fa-solid fa-caret-down fa-beat"></i>年齡低到高</a>
+                        </span>
+                        <span>|</span>
+                        <span>
+                            <a href="#" v-on:click="sortDescendingAge"><i class="fa-solid fa-caret-up fa-beat"></i>年齡高到低</a>
+                        </span>
+                    </h4>
+                </div>
+            </div>
+            @* 新增會員 *@
+            <div class="col-2">
+                <button class="btn btn-success" data-toggle="modal" data-target="#createUserModal">新增會員</button>
+            </div>
+        </div>
+        @* 會員資訊 *@
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th style="width:75px;">編號</th>
+                        <th>會員名稱</th>
+                        <th>信箱</th>
+                        <th style="width:100px;">性別</th>
+                        <th>生日</th>
+                        <th>電話</th>
+                        <th>編輯</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="pu in showUser">
+                        <td v-cloak>{{pu.userId}}</td>
+                        <td v-cloak>{{pu.name}}</td>
+                        <td v-cloak>{{pu.email}}</td>
+                        <td v-cloak>{{pu.gender | formatGender}}</td>
+                        <td v-cloak>{{pu.birthday  | formatDate}}</td>
+                        <td v-cloak>{{pu.phone}}</td>
+                        <td>
+                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#UserDetail" v-on:click="display(pu)">編輯</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <nav class="blog-pagination justify-content-center d-flex">
+                <ul class="pagination">
+                    <paginate :page-count="total"
+                              :click-handler="changePage"
+                              :page-class="'page-item'"
+                              :page-link-class="'page-link'"
+                              :prev-class="'page-link'"
+                              :prev-link-class="'lnr lnr-chevron-left'"
+                              :next-class="'page-link'"
+                              :next-link-class="'lnr lnr-chevron-right'"
+                              :container-class="'pagination'">
+                    </paginate>
+                </ul>
+            </nav>
+        </div>
+
+        @* 編輯會員資訊 *@
+        <div class="modal fade" id="UserDetail" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header text-center">
+                        <h5 class="modal-title w-100">會員詳細資料</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="container">
+                            @* 修改會員資訊視窗 *@
+                            <template v-if="editOpen">
+                                <div class="form-group">
+                                    <label>會員編號:</label>
+                                    <input class="form-control" v-model="UpdateUser.userId" disabled />
+                                </div>
+                                <div class="form-group">
+                                    <label>會員名稱:</label>
+                                    <input class="form-control" v-model="UpdateUser.name" />
+                                </div>
+                                <div class="form-group">
+                                    <label>信箱:</label>
+                                    <input class="form-control" v-model="UpdateUser.email" />
+                                </div>
+                                <div class="form-group">
+                                    <label>性別:</label>
+                                    <select class="form-control" v-model="UpdateUser.gender">
+                                        <option value="M">男性</option>
+                                        <option value="F">女性</option>
+                                        <option value="N">不指定</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>生日:</label>
+                                    <input type="date" class="form-control" v-model="UpdateUser.birthday" @@input="dateValid" />
+                                </div>
+                                <div class="form-group">
+                                    <label>電話:</label>
+                                    <input class="form-control" v-model="UpdateUser.phone" disabled />
+                                </div>
+                            </template>
+                            @* 顯示會員資訊視窗 *@
+                            <template v-else>
+                                <div class="form-group">
+                                    <label>會員編號:</label>
+                                    <span>{{UpdateUser.userId}}</span>
+                                </div>
+                                <div class="form-group">
+                                    <label>會員名稱:</label>
+                                    <span>{{UpdateUser.name}}</span>
+                                </div>
+                                <div class="form-group">
+                                    <label>信箱:</label>
+                                    <span>{{UpdateUser.email}}</span>
+                                </div>
+                                <div class="form-group">
+                                    <label>性別:</label>
+                                    <span>{{UpdateUser.gender}}</span>
+                                </div>
+                                <div class="form-group">
+                                    <label>生日:</label>
+                                    <span>{{UpdateUser.birthday | formatDate}}</span>
+                                </div>
+                                <div class="form-group">
+                                    <label>電話:</label>
+                                    <span>{{UpdateUser.phone}}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" v-on:click="updateUser(UpdateUser)" v-if="editOpen">更新</button>
+                        <button type="button" class="btn btn-danger" v-on:click="deleteUser(UpdateUser.userId)" v-if="editOpen">刪除</button>
+                        <button type="button" class="btn btn-primary" v-on:click="edit" v-else>修改</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* 新增會員modal *@
+    <div class="modal fade" id="createUserModal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header text-center">
+                    <h5 class="modal-title w-100" id="exampleModalLabel">新增會員</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <label class="lab-required">*必填</label>
+                    <div class="form-group">
+                        <label class="lab-required">*</label>
+                        <label for="name">會員名稱:</label>
+                        <input type="text" class="form-control" id="name" v-model="newUser.name">
+                        <div class="text-danger text-valid" v-if="newUser.name && !isValid(newUser.name,validType.name)">您輸入的名稱格式不正確</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="lab-required">*</label>
+                        <label for="email">信箱:</label>
+                        <input type="email" class="form-control" id="email" v-model="newUser.email">
+                        <div class="text-danger text-valid" v-if="newUser.email && !isValid(newUser.email,validType.email)">您輸入的信箱格式不正確</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="gender">性別:</label>
+                        <select class="form-control" id="gender" v-model="newUser.gender">
+                            <option value="M">男性</option>
+                            <option value="F">女性</option>
+                            <option value="N">不指定</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="lab-required">*</label>
+                        <label for="password">密碼:</label>
+                        <input type="password" class="form-control" id="password" v-model="newUser.password">
+                        <div class="text-danger text-valid" v-if="newUser.password && !isValid(newUser.password,validType.password)">您輸入的密碼格式不正確</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="birthday">生日:</label>
+                        <input type="date" class="form-control" id="birthday" v-model="newUser.birthday" @@input="dateValid">
+                    </div>
+                    <div class="form-group">
+                        <label class="lab-required">*</label>
+                        <label for="phone">電話:</label>
+                        <input type="text" class="form-control" id="phone" v-model="newUser.phone">
+                        <div class="text-danger text-valid" v-if="newUser.phone && !isValid(newUser.phone,validType.phone)">您輸入的電話格式不正確</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" v-on:click="createUser">新增</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal" v-on:click="formClear">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script src="~/js/validation.min.js"></script>
+    <script src="https://unpkg.com/vuejs-paginate@0.9.0"></script>
+    <script>
+        Vue.component('paginate', VuejsPaginate)
+        var app = new Vue({
+            el: '#app',
+            data: {
+                putUser: [],
+                editOpen: null,
+                UpdateUser: [],
+                newUser: {
+                    name: '',
+                    email: '',
+                    gender: "N",
+                    birthday: '',
+                    phone: '',
+                    password: ''
+                },
+                searchQuery: '',
+                validType: validType,
+                currentPage: 1,
+                itemPage: 7
+            },
+            mounted: function () {
+                let _this = this;
+                //會員資訊
+                fetch(`/api/admin/AdminGetUser`, { method: "GET" })
+                    .then(response => {
+                        if (response.ok) return response.json();
+                    }).then(data => {
+                        _this.putUser = data;
+                    }).catch(err => {
+                        alert("資料讀取失敗");
+                    })
+            },
+            methods: {
+                isValid: function (str, type) {
+                    return window.validation(str, type);
+                },
+                //排序年齡低到高
+                sortAscendingAge: function () {
+                    let _this = this;
+                    fetch(`/api/admin/OrderByAge`, { method: "GET" })
+                        .then(response => {
+                            if (response.ok) return response.json();
+                        }).then(data => {
+                            _this.putUser = data;
+                        }).catch(error => {
+                            alert(error);
+                        })
+                },
+                //排序年齡高到低
+                sortDescendingAge: function () {
+                    let _this = this;
+                    fetch(`/api/admin/OrderByDescendingAge`, { method: "GET" })
+                        .then(response => {
+                            if (response.ok) return response.json();
+                        }).then(data => {
+                            _this.putUser = data;
+                        }).catch(error => {
+                            alert(error);
+                        })
+                },
+                //新增使用者
+                createUser: function () {
+                    let _this = this;
+                    let form = {
+                        UserId: 0,
+                        Name: _this.newUser.name,
+                        Gender: _this.newUser.gender,
+                        Birthday: _this.newUser.birthday,
+                        Phone: _this.newUser.phone,
+                        Email: _this.newUser.email,
+                        Password: _this.newUser.password
+                    };
+                    if (_this.newUser.name && _this.newUser.gender && _this.newUser.birthday && _this.newUser.phone && _this.newUser.email && _this.newUser.password) {
+                        fetch(`/api/Admin/AdminManageUser`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(form)
+                        }).then(response => response.json())
+                            .then(data => {
+                                if (data) {
+                                    alert("會員新增成功");
+                                    window.location.href = "/Admin/Manage/User";
+                                } else {
+                                    alert("會員新增失敗");
+                                }
+                            }).catch(err => {
+                                alert("會員新增失敗");
+                            });
+                    } else {
+                        alert("有欄位沒有內容")
+                    }
+                },
+                //會員資訊modal
+                display: function (model) {
+                    let _this = this;
+                    _this.editOpen = false;
+                    _this.UpdateUser = Object.assign({}, model);
+                },
+                edit: function () {
+                    let _this = this;
+                    _this.editOpen = true;
+                },
+                //修改使用者資訊
+                updateUser: function (model) {
+                    let _this = this;
+                    let request = {
+                        Name: model.name,
+                        Email: model.email,
+                        Gender: model.gender,
+                        Birthday: model.birthday,
+                        Phone: model.phone,
+                    };
+                    if (model.name && model.email && model.gender && model.birthday && model.phone) {
+                        let result = confirm(`確定要更新使用者名稱為${_this.UpdateUser.name}的產品資訊？`);
+                        if (result != true) return;
+                        fetch(`/api/admin/AdminPutUser/${model.userId}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(request)
+                        }).then(response => response.json())
+                            .then(data => {
+                                _this.editOpen = false;
+                                alert("修改成功");
+                                location.href = "/Admin/Manage/User";
+                            })
+                            .catch(err => {
+                                alert("修改失敗,請檢查必填有無填寫")
+                            });
+                    } else {
+                        alert("有欄位沒有內容")
+                    }
+                },
+                //刪除使用者
+                deleteUser: function (userId) {
+                    let _this = this;
+                    let result = confirm(`確定要刪除會員編號${userId}?`);
+                    if (result == true) {
+                        fetch(`/api/admin/AdminDeleteUser/${userId}`, { method: "DELETE" })
+                            .then(response => response.json())
+                            .then(data => {
+                                alert("刪除成功");
+                                window.location.href = "/Admin/Manage/User";
+                            }).catch(err => {
+                                alert("刪除失敗");
+                            });
+                    }
+                },
+                //關鍵字搜尋
+                search: function () {
+                    let _this = this;
+                    if (_this.searchQuery.trim() == '') {
+                        _this.searchQuery = '';
+                        // 不執行篩選，直接獲取所有用戶
+                        fetch(`/api/admin/AdminGetUser`)
+                            .then(response => {
+                                if (response.ok) return response.json();
+                            })
+                            .then(data => {
+                                _this.putUser = data;
+                            })
+                            .catch(err => {
+                                alert("資料讀取失敗");
+                            });
+                    } else {
+                        // 執行根據搜尋條件篩選用戶
+                        fetch(`/api/admin/AdminSearchUser?query=${_this.searchQuery}`, {
+                            method: "GET"
+                        }).then(response => {
+                            if (response.ok) return response.json();
+                        }).then(data => {
+                            _this.putUser = data;
+                        }).catch(error => {
+                            alert(error);
+                        });
+                    }
+                },
+                //日期限制
+                dateValid: function (date) {
+                    let _this = this;
+                    let today = new Date();
+                    let formattedToday = today.getFullYear() + '-' + (today.getMonth() + 1).toString().padStart(2, '0') + '-' + today.getDate().toString().padStart(2, '0');
+                    let originalDate = _this.UpdateUser.birthday;
+                    if (date.target.value > formattedToday) {
+                        alert("您選擇的日期不正確");
+                        _this.newUser.birthday = "";
+                        _this.UpdateUser.birthday = "";
+                    }
+                },
+                //分頁
+                changePage: function (num) {
+                    let _this = this;
+                    _this.currentPage = num;
+                },
+                //清除新增會員model資料
+                formClear: function () {
+                    this.newUser = {
+                        name: "",
+                        email: "",
+                        gender: "N",
+                        birthday: "",
+                        phone: "",
+                        password: ""
+                    }
+                }
+            },
+            filters: {
+                //日期格式
+                formatDate: function (str) {
+                    if (!str) return "";
+                    var d = new Date(str);
+                    return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+                },
+
+                //性別
+                formatGender: function (str) {
+                    if (str == "M") return "男性";
+                    if (str == "F") return "女性";
+                    if (str == "N") return "未指定";
+                }
+            },
+            computed: {
+                //分頁
+                showUser: function () {
+                    let _this = this;
+                    var start = (_this.currentPage - 1) * _this.itemPage;
+                    var end = start + _this.itemPage;
+                    return this.putUser.slice(start, end);
+                },
+                total: function () {
+                    let _this = this;
+                    return Math.ceil(_this.putUser.length / _this.itemPage);
+                }
+            }
+        });
+    </script>
+}

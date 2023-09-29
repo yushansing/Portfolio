@@ -1,0 +1,348 @@
+﻿@{
+    ViewData["Title"] = "訂單管理";
+}
+
+@section Styles{
+    <link href="~/css/manageorders.css" rel="stylesheet" />
+}
+
+<div id="app">
+    @* 搜尋 *@
+    <div class="row upperLayer">
+        @* 搜尋 *@
+        <div class="col-4">
+            <input class="inp-search" type="text" placeholder="Search..." v-model="searchQuery" @@keyup="search">
+        </div>
+    </div>
+    @* 訂單 *@
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>訂單編號</th>
+                    <th>會員編號</th>
+                    <th>訂單金額</th>
+                    <th>獲得點數</th>
+                    <th>訂單日期</th>
+                    <th>訂單狀態</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="item in showOrders">
+                    <template class="text-center" v-if="item.Edit==true">
+                        <td v-cloak>{{item.orderId}}</td>
+                        <td v-cloak>{{item.userId}}</td>
+                        <td v-cloak>{{item.totalPrice | formatCurrency}}</td>
+                        <td v-cloak>{{item.newPoint}}</td>
+                        <td>
+                            <input type="date" class="w-100 form-control" v-model="editOrder.orderDate">
+                        </td>
+                        <td>
+                            <select class="w-100 form-control" v-model="editOrder.status">
+                                <option value="success">success</option>
+                                <option value="false">false</option>
+                            </select>
+                        </td>
+                        <td>
+                            <div class="d-flex justify-content-around">
+                                <button type="button" class="btn btn-primary" @@click="updateOrder(item)">儲存</button>
+                                <button type="button" class="btn btn-secondary" @@click="cancelChangeOrder(item)">取消</button>
+                            </div>
+                        </td>
+                    </template>
+                    <template class="text-center" v-else>
+                        <td v-cloak>{{item.orderId}}</td>
+                        <td v-cloak>{{item.userId}}</td>
+                        <td v-cloak>{{item.totalPrice | formatCurrency}}</td>
+                        <td v-cloak>{{item.newPoint}}</td>
+                        <td v-cloak>{{item.orderDate}}</td>
+                        <td v-cloak>{{item.status}}</td>
+                        <td>
+                            <div class="d-flex justify-content-around">
+                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#detailModal" @@click="openOrderDetail(item)">明細</button>
+                                <button type="button" class="btn btn-primary" @@click="openChangeOrder(item)">修改</button>
+                                <button type="button" class="btn btn-danger" @@click="deleteOrder(item.orderId)">刪除</button>
+                            </div>
+                        </td>
+                    </template>
+                </tr>
+            </tbody>
+        </table>
+        @* 分頁 *@
+        <nav class="blog-pagination justify-content-center d-flex">
+            <ul class="pagination">
+                <paginate :page-count="total"
+                          :click-handler="changePage"
+                          :page-class="'page-item'"
+                          :page-link-class="'page-link'"
+                          :prev-class="'page-link'"
+                          :prev-link-class="'lnr lnr-chevron-left'"
+                          :next-class="'page-link'"
+                          :next-link-class="'lnr lnr-chevron-right'"
+                          :container-class="'pagination'">
+                </paginate>
+            </ul>
+        </nav>
+    </div>
+
+    @* 訂單明細modal *@
+    <div class="modal fade" id="detailModal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">訂單明細</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="container">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>明細編號</th>
+                                        <th>方案圖片</th>
+                                        <th>方案名稱</th>
+                                        <th>數量</th>
+                                        <th>金額</th>
+                                        <th>使用日期</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="item in detail">
+                                        <template class="text-center" v-if="detailEdit==true">
+                                            <td v-cloak>{{item.id}}</td>
+                                            <td v-cloak style="width:200px"><img class="w-100" :src="item.odimg" /></td>
+                                            <td v-cloak>{{item.odname}}</td>
+                                            <td v-cloak>{{item.quantity}}</td>
+                                            <td v-cloak>{{item.unitPrice}}</td>
+                                            <td>
+                                                <input type="date" v-model="editDetail.useDate" />
+                                            </td>
+                                            <td>
+                                                <div class="d-flex justify-content-around">
+                                                    <button type="button" class="btn btn-primary" @@click="updateDetail(item)">儲存</button>
+                                                    <button type="button" class="btn btn-secondary" @@click="cancelChangeDetail(item)">取消</button>
+                                                </div>
+                                            </td>
+                                        </template>
+                                        <template class="text-center" v-else>
+                                            <td v-cloak>{{item.id}}</td>
+                                            <td v-cloak style="width:200px"><img class="w-100" :src="item.odimg" /></td>
+                                            <td v-cloak>{{item.odname}}</td>
+                                            <td v-cloak>{{item.quantity}}</td>
+                                            <td v-cloak>{{item.unitPrice}}</td>
+                                            <td v-cloak>{{item.useDate}}</td>
+                                            <td>
+                                                <div class="d-flex justify-content-around">
+                                                    <button type="button" class="btn btn-primary" @@click="openChangeDetail(item)">修改</button>
+                                                    <button type="button" class="btn btn-danger" @@click="deleteDetail(item)">刪除</button>
+                                                </div>
+                                            </td>
+                                        </template>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script src="https://unpkg.com/vuejs-paginate@0.9.0"></script>
+    <script>
+        Vue.component('paginate', VuejsPaginate)
+        var app = new Vue({
+            el: "#app",
+            data: {
+                order: [],
+                detail: [],
+                editOrder: {
+                    status: "",
+                    orderDate: ""
+                },
+                editDetail: {
+                    useDate: ""
+                },
+                detailEdit: false,
+                currentPage: 1,
+                itemPage: 7,
+                searchQuery: ""
+            },
+            mounted: function () {
+                let _this = this;
+                fetch("/api/OrderManage/GetOrders", { method: "GET" })
+                    .then(response => response.json())
+                    .then(data => {
+                        _this.order = data.map(z => ({ ...z, Edit: false }));
+                        console.log(_this.order);
+                    }).catch(error => {
+                        alert(error);
+                    });
+            },
+            methods: {
+                //編輯訂單
+                openChangeOrder: function (item) {
+                    item.Edit = true;
+                    this.editOrder.status = item.status;
+                    this.editOrder.orderDate = item.orderDate;
+                },
+                //修改訂單
+                updateOrder: function (or) {
+                    fetch("/api/OrderManage/UpdateOrder/" + or.orderId,
+                        {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(this.editOrder)
+                        }).then(x => x.json())
+                        .then(x => {
+                            if (x) {
+                                alert("修改成功");
+                                for (var i = 0; i < this.order.length; i++) {
+                                    if (this.order[i].orderId == or.orderId) {
+                                        this.order[i].status = this.editOrder.status;
+                                        this.order[i].orderDate = this.editOrder.orderDate;
+                                        this.order[i].Edit = false;
+                                        return;
+                                    }
+                                }
+                            } else {
+                                alert("修改失敗");
+                            }
+                        })
+                },
+                //刪除訂單
+                deleteOrder: function (id) {
+                    let self = this;
+                    fetch("/api/OrderManage/DeleteOrder/" + id, { method: "DELETE" })
+                        .then(x => x.json())
+                        .then(x => {
+                            if (x) {
+                                alert("刪除成功");
+                                var idx = this.order.findIndex(x => x.orderId == id);
+                                this.order.splice(idx, 1);
+                            } else {
+                                alert("刪除成功");
+                            }
+                        });
+                },
+                //取消訂單編輯
+                cancelChangeOrder: function (item) {
+                    item.Edit = false;
+                    this.editOrder.status = ""
+                    this.editOrder.orderDate = ""
+                },
+                //訂單明細
+                openOrderDetail: function (order) {
+                    this.detail = order.od;
+                },
+                //編輯訂單明細
+                openChangeDetail: function (item) {
+                    this.detailEdit = true;
+                    this.editDetail.useDate = item.useDate;
+                },
+                //修改訂單明細
+                updateDetail: function (od) {
+                    fetch("/api/OrderManage/UpdateDetail/" + od.id,
+                        {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(this.editDetail)
+                        }).then(x => x.json())
+                        .then(x => {
+                            if (x) {
+                                alert("修改成功");
+                                var idx = this.order.findIndex(x => x.orderId == od.orderId);
+                                var odIdx = this.order[idx].od.findIndex(x => x.id == od.id);
+                                this.order[idx].od[odIdx].useDate = this.editDetail.useDate;
+                                this.detailEdit = false;
+                            } else {
+                                alert("修改失敗");
+                            }
+                        })
+                },
+                //刪除訂單明細
+                deleteDetail: function (od) {
+                    let self = this;
+                    fetch("/api/OrderManage/DeleteDetail/" + od.id, { method: "DELETE" })
+                        .then(x => x.json())
+                        .then(x => {
+                            if (x) {
+                                alert("刪除成功");
+                                var idx = this.order.findIndex(x => x.orderId == od.orderId);
+                                var odIdx = this.order[idx].od.findIndex(x => x.id == od.id);
+                                this.order[idx].od.splice(odIdx, 1);
+                            } else {
+                                alert("刪除成功");
+                            }
+                        });
+                },
+                //取消編輯訂單明細
+                cancelChangeDetail: function (item) {
+                    this.detailEdit = false;
+                    this.editDetail.useDate = "";
+                },
+                //分頁
+                changePage: function (num) {
+                    let _this = this;
+                    _this.currentPage = num;
+                },
+                //搜尋
+                search: function () {
+                    let _this = this;
+                    if (_this.searchQuery.trim() == '') {
+                        _this.searchQuery = '';
+                        // 不執行篩選，直接獲取所有商品
+                        fetch(`/api/OrderManage/GetOrders`)
+                            .then(response => response.json())
+                            .then(data => {
+                                _this.order = data;
+                            })
+                            .catch(error => {
+                                alert(error);
+                            });
+                    } else {
+                        // 執行根據搜尋條件篩選商品
+                        fetch(`/api/OrderManage/SearchOrders?query=${_this.searchQuery}`, {
+                            method: "GET"
+                        }).then(response => response.json())
+                            .then(data => {
+                                _this.order = data;
+                            }).catch(error => {
+                                alert(error);
+                            });
+                    }
+                }
+            },
+            computed: {
+                //分頁
+                showOrders: function () {
+                    let _this = this;
+                    var start = (_this.currentPage - 1) * _this.itemPage;
+                    var end = start + _this.itemPage;
+                    return this.order.slice(start, end);
+                },
+                total: function () {
+                    let _this = this;
+                    return Math.ceil(_this.order.length / _this.itemPage);
+                }
+            },
+            filters: {
+                //貨幣格式
+                formatCurrency: function (val) {
+                    if (typeof val !== "number") return val;
+                    return val.toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', minimumFractionDigits: 0 });
+                }
+            }
+        })
+    </script>
+}
